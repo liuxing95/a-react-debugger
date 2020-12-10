@@ -1,4 +1,4 @@
-const REACT_ELEMENT_TYPE = Symbol.for('react.element') // 使用字符串会有问题 防止外来数据 假冒成react 组件
+import { REACT_ELEMENT_TYPE } from '../shared/ReactSymbols'
 
 // packages/react/src/ReactElement.js
 
@@ -14,8 +14,10 @@ function ReactElement(type, key, props) {
 
 function createElement(type, props = {}, children) {
   let _props = Object.assign({}, props)
+  // @ts-ignore
   let _key = _props.key || null
   let children_length = children.length
+  // @ts-ignore
   _props.children = children_length === 0 ? null : children_length === 1 ? children[0] : children
   return ReactElement(type, _key, _props)
 }
@@ -31,6 +33,7 @@ class Component {
     return true
   }
 
+  // @ts-ignore
   static getDerivedStateFromProps(nextProps, prevState) {
     // if (nextProps.source !== prevState.source) {
     //   return {

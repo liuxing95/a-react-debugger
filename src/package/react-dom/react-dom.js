@@ -1,19 +1,9 @@
+import { NoEffect, Placement, Update,  Deletion, PlacementAndUpdate} from '../shared/ReactSideEffectTags'
+import { ClassComponent, HostRoot, HostComponent, HostText } from '../shared/ReactWorkTags'
+import { createFiber } from '../react-reconciler/ReactFiber'
 let isFirstRender = false
 let isWorking = false
 let isCommitIng = false
-
-
-let HostRoot = 'HostRoot' // 标示 rootFiber类型
-let ClassComponent = 'ClassComponent' // 表示类组件的类型
-let HostComponent = 'HostComponent' // 表示原生dom类型
-let HostText = 'HostText' // 表示文本类型
-// let FunctionComponent = 'FunctionComponent' // 表示函数组件类型
-
-let NoWork = 'NoWork' // 当前节点无任何工作
-let Placement = 'Placement' // 表示这个节点是新插入的
-let Update = 'Update' // 表示当前节点有更新
-let Deletion = 'Deletion' // 表示当前节点要被删除
-let PlacementAndUpdate = 'PlacementAndUpdate' // 一般是节点换位置同时更新了
 
 let nextUnitOfWork = null
 
@@ -36,44 +26,6 @@ let eventsName = {
   onInput: 'input'
 }
 
-class FiberNode {
-  constructor(tag, key, pendingProps) {
-    // Instance
-    this.tag = tag // 标示当前 fiber的类型
-    this.key = key
-    this.type = null // 'div' | 'h1' | Avatar
-    this.stateNode = null // 表示当前fiber的实例
-
-
-     // Fiber
-    this.child = null // 表示当前fiber的子节点 每个fiber节点有且只有一个指向它的 firstChild
-    this.sibling = null // 表示当前节点的兄弟节点  每个fiber有且只有一个指向兄弟节点
-    this.return = null // 表示当前 fiber 的父节点
-    this.index = 0
-    this.memoizedState = null // 表示当前fiber的state
-    this.memoizedProps = null // 表示当前fiber的props
-    this.pendingProps = pendingProps // 表示新进来的props
-    this.effectTag = NoWork // 表示当前节点进行何种更新
-
-    // Effects
-    // 链表是从 firstEffect 指向 lastEffect的一条链表
-    this.firstEffect = null // 表示当前节点的有更新的第一个子节点
-    this.lastEffect = null // 表示当前节点有更新的最后一个子节点
-    this.nextEffect = null // 表示下一个要更新的子节点
-
-    this.alternate = null // 用来连接 current 和 workInProgress
-    this.updateQueue = null // 一条链表 上面挂载的是当前fiber的新的状态
-    // 其实还有很多其他的属性
-    // expirationTime: 0
-  }
-}
-
-
-// 创建一个Fiber
-function createFiber(tag, key, pendingProps) {
-  return new FiberNode(tag, key, pendingProps)
-}
-
 function createWorkInProgress(current, pendingProps) {
   // 复用 current.alternate
   let workInProgress = current.alternate
@@ -86,7 +38,7 @@ function createWorkInProgress(current, pendingProps) {
     current.alternate = workInProgress
   } else {
     workInProgress.pendingProps = pendingProps
-    workInProgress.effectTag = NoWork
+    workInProgress.effectTag = NoEffect
     workInProgress.firstEffect = null
     workInProgress.lastEffect = null
     workInProgress.nextEffect = null
@@ -489,7 +441,7 @@ function commitRoot(root, finishedWork) {
   while(!!nextEffect) {
     ifError('第二个循环', 50)
     let effectTag = nextEffect.effectTag
-    if (effectTag.includes(Placement)) {
+    if (effectTag === Placement) {
       // 说明是新插入的节点
       // 1. 先找到一个能被插进来的父节点
      

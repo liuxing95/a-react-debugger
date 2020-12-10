@@ -51,11 +51,11 @@
 // 使用了真正的异步方式（postMessage） 这个才是真正的异步
 
 // flushSync() 
-flushSync(() => {
-  this.setState({
-    a: xxx
-  })
-})
+// flushSync(() => {
+//   this.setState({
+//     a: xxx
+//   })
+// })
 // 当使用了 flushSync 这个API的时候 react的更新渲染完全是同步的
 // 会立即触发更新state并处触发渲染过程
 // 这种情况可以获取到最新的状态

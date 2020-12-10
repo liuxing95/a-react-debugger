@@ -16,16 +16,26 @@ module.exports = {
         contentBase: './dist',
         port: 3123
     },
+    resolve: {
+        // Add ".ts" and ".tsx" as resolvable extensions.
+        extensions: [".ts", ".tsx", ".js"],
+    },
     module: {
     	// 配置相应的规则
         rules: [
             {
+                test: /(\.ts(x?)$)/,
+                exclude: /node_modules/,
+                use: ['babel-loader', 'ts-loader']
+            },
+            {
+                test: /(\.js(x?)$)/,
+                exclude: /node_modules/,
+                use: ['babel-loader']
+            },
+            {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader', 'postcss-loader']
-            }, {
-                test: /\.js[x]?$/,
-                use: 'babel-loader',
-                exclude: /node_modules/
             }, {
                 test: /\.less$/,
                 use: ['style-loader',

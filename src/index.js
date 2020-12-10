@@ -1,5 +1,5 @@
-import React from './react/react'
-import ReactDOM from './react-dom/react-dom'
+import React from './package/react/react'
+import ReactDOM from './package/react-dom/react-dom'
 
 class Liu extends React.Component {
   constructor(props) {
