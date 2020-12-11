@@ -1,6 +1,6 @@
 import { NoEffect, Placement, Update,  Deletion, PlacementAndUpdate} from '../shared/ReactSideEffectTags'
 import { ClassComponent, HostRoot, HostComponent, HostText } from '../shared/ReactWorkTags'
-import { createFiber } from '../react-reconciler/ReactFiber'
+import { createFiber, createWorkInProgress } from '../react-reconciler/ReactFiber'
 let isFirstRender = false
 let isWorking = false
 let isCommitIng = false
@@ -24,56 +24,6 @@ let eventsName = {
   onClick: 'click',
   onChange: 'change',
   onInput: 'input'
-}
-
-function createWorkInProgress(current, pendingProps) {
-  // 复用 current.alternate
-  let workInProgress = current.alternate
-  if (!workInProgress) {
-    workInProgress = createFiber(current.tag, pendingProps, current.key)
-    workInProgress.type = current.type
-    workInProgress.stateNode = current.stateNode
-    // 要让这俩东西互相指向
-    workInProgress.alternate = current
-    current.alternate = workInProgress
-  } else {
-    workInProgress.pendingProps = pendingProps
-    workInProgress.effectTag = NoEffect
-    workInProgress.firstEffect = null
-    workInProgress.lastEffect = null
-    workInProgress.nextEffect = null
-  }
-
-  // 要保证current 和 current.alternate 上的 updateQueue是同步的
-  // 因为每次执行setState时候 会创建新的更新 把更新挂载到组件对应的fiber上
-  // 这个fiber在奇数次更新时 存在于current树上 在偶数次更新时 存在于 current.alternate 树上
-  // 咱们每次创建（或复用） workInProgress 是从 current.alternate 上拿到的对象
-  // 复用的这个 alternate updateQueue不一定有新的更新
-  // 所以这里要判断 如果 current.alternate 上没有新的更新的话 就说明本轮更新
-  // 找到的这个fiber 存在于 current树上
-
-  // 源码中没有这个判断
-  // 在执行createWorkInProgress 执行
-  // 调用了一个叫做 enqueueUpdate 的方法
-  // 这个方法 它将fiber 和 current.alternate 的updateQueue 的新状态进行了同步
-
-  // 只有初次渲染的时候 会给组件的实例一个属性 指向它的fiber
-  // 以后 这个fiber 就不会再改变了
-  if(
-    !!workInProgress &&
-    !!workInProgress.updateQueue && 
-    !workInProgress.updateQueue.lastUpdate
-  ) {
-    workInProgress.updateQueue = current.updateQueue
-  }
-
-  workInProgress.child = current.child
-  workInProgress.memoizedState = current.memoizedState
-  workInProgress.memoizedProps = current.memoizedProps
-  workInProgress.sibling = current.sibling
-  workInProgress.index = current.index
-
-  return workInProgress
 }
 
 // 对象类型的fiber节点

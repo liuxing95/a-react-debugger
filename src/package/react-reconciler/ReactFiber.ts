@@ -132,3 +132,59 @@ export const createFiber = function(
 ): Fiber {
   return new FiberNode(tag, key, pendingProps);
 }
+
+export function createWorkInProgress(
+  current: Fiber,
+  pendingProps: any,
+  expirationTime: ExpirationTime
+): Fiber {
+  // 复用 current.alternate
+  let workInProgress = current.alternate
+  if (workInProgress === null) {
+    // we use a double buffering pooling technique because we know  we will
+    // only ever need at most two version of a tree.
+    // We pool the "other" unused
+    // node that we're free to reuse. This is lazily created to avoid allocating
+    // extra objects for things that are never updated. It also allow us to
+    // reclaim the extra memory if needed.
+    workInProgress = createFiber(
+      current.tag,
+      pendingProps,
+      current.key
+    )
+
+    workInProgress.elementType = current.elementType;
+    workInProgress.type = current.type
+    workInProgress.stateNode = current.stateNode
+
+    // 要让这俩东西互相指向
+    workInProgress.alternate = current
+    current.alternate = workInProgress
+  } else {
+    // 我们的 workInProgress 用的是 之前的 Fiber结构  但是我们需要清除之前的数据
+    workInProgress.pendingProps = pendingProps
+    
+    // Reset the effect tag.
+    workInProgress.effectTag = NoEffect
+
+    // The effect list is no longer valid.
+    workInProgress.nextEffect = null
+    workInProgress.firstEffect = null
+    workInProgress.lastEffect = null
+  }
+
+  // workInProgress 的其他值 复用 current 的属性
+  workInProgress.childExpirationTime = current.childExpirationTime
+  workInProgress.expirationTime = current.expirationTime
+
+  workInProgress.child = current.child
+  workInProgress.memoizedProps = current.memoizedProps
+  workInProgress.memoizedState = current.memoizedState
+  workInProgress.updateQueue = current.updateQueue
+  
+  // These will be overridden during the parent's reconciliation
+  workInProgress.sibling = current.sibling
+  workInProgress.index = current.index
+
+  return workInProgress
+}
