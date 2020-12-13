@@ -21,7 +21,7 @@ export type WorkTag =
 
 export const FunctionComponent = 0;
 export const ClassComponent = 1; // 表示类组件的类型
-
+export const IndeterminateComponent = 2; //在事先不知道是函数组件或者class组件
 export const HostRoot = 3; // 标示 rootFiber类型
 
 export const HostComponent = 5; // 表示原生dom类型

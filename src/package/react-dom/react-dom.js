@@ -1,6 +1,7 @@
 import { NoEffect, Placement, Update,  Deletion, PlacementAndUpdate} from '../shared/ReactSideEffectTags'
 import { ClassComponent, HostRoot, HostComponent, HostText } from '../shared/ReactWorkTags'
 import { createFiber, createWorkInProgress } from '../react-reconciler/ReactFiber'
+import { reconcileChildren } from '../react-reconciler/ReactFiberBeginWork'
 let isFirstRender = false
 let isWorking = false
 let isCommitIng = false
@@ -26,101 +27,16 @@ let eventsName = {
   onInput: 'input'
 }
 
-// 对象类型的fiber节点
-function reconcileSingleElement(returnFiber, element) {
-  let type = element.type
-  let flag = null
-  if (element.$$typeof === Symbol.for('react.element')) {
-    if (typeof type === 'function') {
-      // 判断是react组件还是一个单纯的函数
-      if(type.prototype && type.prototype.isReactComponent) {
-        flag = ClassComponent
-      }
-    } else if (typeof type === 'string') {
-      flag = HostComponent
-    }
-
-    let fiber = createFiber(flag, element.key, element.props)
-    fiber.type = type
-    fiber.return = returnFiber
-    return fiber
-  }
-}
-
-function reconcileSingleTextNode(returnFiber, text) {
-  let fiber = createFiber(HostText, null, text)
-  fiber.return = returnFiber
-  return fiber
-
-}
-
-function reconcileChildrenArray(workInProgress, nextChildren) {
-  // 这个方法中要通过 index 和 key值 去尽可能多的可以复用的dom节点
-  // 这个函数是 react中最最复杂的diff算法
-  let nowWorkInProgress = null
-  // 是否是首次render
-  if (isFirstRender) {
-    nextChildren.forEach((reactElement, index) => {
-      if (index === 0) {
-        if (typeof reactElement === 'string' || typeof reactElement === 'number') {
-          workInProgress.child = reconcileSingleTextNode(workInProgress, reactElement)
-        } else {
-          workInProgress.child = reconcileSingleElement(workInProgress, reactElement)
-        }
-        nowWorkInProgress = workInProgress.child
-      } else {
-        if (typeof reactElement === 'string' || typeof reactElement === 'number') {
-          nowWorkInProgress.sibling = reconcileSingleTextNode(workInProgress, reactElement)
-        } else {
-          nowWorkInProgress.sibling = reconcileSingleElement(workInProgress, reactElement)
-        }
-        nowWorkInProgress = nowWorkInProgress.sibling
-      }
-    })
-    return workInProgress.child
-  }
-}
-
-// 真正生成子 fiber的过程
-function reconcileChildFiber(workInProgress, nextChildren) {
-  // 数组的 typeof 也可能是object 所以加了层 typeof 判断
-  if (typeof nextChildren === 'object' && !!nextChildren &&  !!nextChildren.$$typeof ) {
-    // 说明是一个独生子 并且是 react元素
-    return reconcileSingleElement(workInProgress, nextChildren)
-  }
-  if (nextChildren instanceof Array) {
-    return reconcileChildrenArray(workInProgress, nextChildren)
-  }
-
-  // 文本节点
-  if (typeof nextChildren === 'string' || typeof nextChildren === 'number' ) {
-    return reconcileSingleTextNode(workInProgress, nextChildren)
-  }
-  return null
-}
-
-// 生成子节点的fiber
-function reconcileChildren(workInProgress, nextChildren) {
-  // 只有rootFiber 有workInProgress.alternate
-  if (isFirstRender && !!workInProgress.alternate) {
-    workInProgress.child = reconcileChildFiber(workInProgress, nextChildren)
-    workInProgress.child.effectTag = Placement
-  } else {
-    workInProgress.child = reconcileChildFiber(workInProgress, nextChildren)
-  }
-  return workInProgress.child
-}
-
 // 操作根节点
-function updateHostRoot(workInProgress) {
+function updateHostRoot(current, workInProgress) {
   // 获取子节点
   let children = workInProgress.memoizedState.element
   // 创建fiber
-  return reconcileChildren(workInProgress, children)
+  return reconcileChildren(current, workInProgress, children)
 }
 
 // 组件类型
-function updateClassComponent(workInProgress) {
+function updateClassComponent(current, workInProgress) {
   let component = workInProgress.type
   let nextProps = workInProgress.pendingProps
   if (!!component.defaultProps) {
@@ -158,10 +74,10 @@ function updateClassComponent(workInProgress) {
   }
 
   let nextChild = instance.render()
-  return reconcileChildren(workInProgress, nextChild)
+  return reconcileChildren(current, workInProgress, nextChild)
 }
 
-function updateHostComponent(workInProgress) {
+function updateHostComponent(current, workInProgress) {
   let nextProps = workInProgress.pendingProps
   let nextChildren = nextProps.children
 
@@ -173,19 +89,19 @@ function updateHostComponent(workInProgress) {
     nextChildren = null
   }
 
-  return reconcileChildren(workInProgress, nextChildren)
+  return reconcileChildren(current, workInProgress, nextChildren)
 }
 
-function beginWork(workInProgress) {
+function beginWork(current, workInProgress) {
   let tag = workInProgress.tag
   let next = null
   // rootFiber
   if (tag === HostRoot) {
-    next = updateHostRoot(workInProgress)
+    next = updateHostRoot(current, workInProgress)
   } else if (tag === ClassComponent) { // class组件
-    next = updateClassComponent(workInProgress)
+    next = updateClassComponent(current, workInProgress)
   } else if (tag === HostComponent) {
-    next = updateHostComponent(workInProgress)
+    next = updateHostComponent(current, workInProgress)
   } else if (tag === HostText) {
     next = null
   }
@@ -282,7 +198,7 @@ function completeWork(workInProgress) {
   }
 }
 
-function completeUnitOfWork (workInProgress) {
+function completeUnitOfWork (current, workInProgress) {
   // 是个循环
   while(true) {
     // 父节点
@@ -321,20 +237,20 @@ function completeUnitOfWork (workInProgress) {
   }
 }
 
-function performUnitOfWork (workInProgress) {
+function performUnitOfWork (current, workInProgress) {
   // 创建子节点
-  let next = beginWork(workInProgress)
+  let next = beginWork(current, workInProgress)
 
   if (next === null) {
     // 对当前节点 创建dom 并进行插入的时机
-    next = completeUnitOfWork(workInProgress)
+    next = completeUnitOfWork(current, workInProgress)
   }
   return next
 }
 // 循环创建fiber树
-function workLoop(nextUnitOfWork) {
+function workLoop(current, nextUnitOfWork) {
   while(!!nextUnitOfWork) {
-    nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+    nextUnitOfWork = performUnitOfWork(current, nextUnitOfWork)
   }
 }
 
@@ -489,9 +405,10 @@ class ReactRoot {
     // 语义化
     nextUnitOfWork = workInProgress
 
-    workLoop(nextUnitOfWork)
+    workLoop(root.current, nextUnitOfWork)
 
     root.finishedWork = root.current.alternate
+    debugger
 
     // commit 阶段
     if (!!root.finishedWork) {

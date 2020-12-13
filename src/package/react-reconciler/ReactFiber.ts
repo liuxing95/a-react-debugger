@@ -1,10 +1,12 @@
-import { WorkTag } from '../shared/ReactWorkTags'
+import { ClassComponent, Fragment, HostComponent, IndeterminateComponent, WorkTag } from '../shared/ReactWorkTags'
 import { NoEffect } from '../shared/ReactSideEffectTags'
 import { NoWork, ExpirationTime } from './ReactFiberExpirationTime'
 import { UpdateQueue } from './ReactUpdateQueue';
 import { SideEffectTag } from '../shared/ReactSideEffectTags'
+import { ReactFragment, RefObject } from 'package/shared/ReactTypes';
+import { ReactElement } from 'package/shared/ReactElementType';
 
-export interface Fiber {
+export type Fiber = {
   // Tag identifying the type of fiber.
   tag: WorkTag,
 
@@ -30,7 +32,7 @@ export interface Fiber {
 
   // The ref last used to attach this node
   // I'll avoid adding an owner field for prod and model that as functions.
-  // ref: null | (((handle: any) => void) & {_stringRef: string}) | RefObject
+  ref: null | (((handle: any) => void) & {_stringRef: string}) | RefObject
 
   pendingProps: any
   memoizedProps: any
@@ -136,7 +138,7 @@ export const createFiber = function(
 export function createWorkInProgress(
   current: Fiber,
   pendingProps: any,
-  expirationTime: ExpirationTime
+  expirationTime?: ExpirationTime
 ): Fiber {
   // 复用 current.alternate
   let workInProgress = current.alternate
@@ -187,4 +189,64 @@ export function createWorkInProgress(
   workInProgress.index = current.index
 
   return workInProgress
+}
+
+export function createFiberFromFragment(
+  elements: ReactFragment,
+  expirationTime: ExpirationTime,
+  key: null | string
+): Fiber {
+  const fiber = createFiber(Fragment, key, elements);
+  fiber.expirationTime = expirationTime
+  return fiber
+}
+
+export function createFiberFromElement(
+  element: ReactElement,
+  expirationTime: ExpirationTime
+): Fiber {
+  const type = element.type
+  const key = element.key
+  const pendingProps = element.props
+  const fiber = createFiberFromTypeAndProps(
+    type,
+    key,
+    pendingProps,
+    expirationTime
+  )
+  return fiber
+}
+
+export function createFiberFromTypeAndProps(
+  type: any, // React$ElementType
+  key: null | string,
+  pendingProps: any,
+  expirationTime: ExpirationTime
+): Fiber {
+  let fiber
+
+  let fiberTag = IndeterminateComponent
+  // The resolved type is set if we know what the final type will be
+  let resolvedType = type
+  if (typeof type === 'function') {
+    if (shouldConstruct(type)) {
+      fiberTag = ClassComponent
+    }
+  } else if (typeof type === 'string') {
+    fiberTag = HostComponent
+  } else {
+    // 其他类型的组件 TODO:
+  }
+
+  fiber = createFiber(fiberTag as WorkTag, key, pendingProps)
+  fiber.elementType = type;
+  fiber.type = resolvedType;
+  fiber.expirationTime = expirationTime;
+
+  return fiber;
+}
+
+function shouldConstruct(Component: Function) {
+  const prototype = Component.prototype
+  return !!(prototype && prototype.isReactComponent)
 }
