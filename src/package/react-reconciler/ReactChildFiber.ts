@@ -11,7 +11,7 @@ const isArray = Array.isArray;
 // 渲染 单个真实dom元素
 export function reconcileSingleElement(
   returnFiber: Fiber,
-  // currentFirstChild: Fiber | null,
+  currentFirstChild: Fiber | null,
   element: ReactElement,
   expirationTime?: ExpirationTime
 ): Fiber {
@@ -572,6 +572,15 @@ export function reconcileChildrenArray(
   return resultingFirstChild;
 }
 
+function placeSingleChild(newFiber: Fiber): Fiber {
+  // This is simpler for the single child case. We only need to do a
+  // placement for inserting new children.
+  if (newFiber.alternate === null) {
+    newFiber.effectTag = Placement;
+  }
+  return newFiber;
+}
+
 export function reconcileChildFibers(
   returnFiber: Fiber,
   currentFirstChild: Fiber | null,
@@ -593,20 +602,35 @@ export function reconcileChildFibers(
   if (isObject) {
     switch(newChild.$$typeof) {
       case REACT_ELEMENT_TYPE:
-        return reconcileSingleElement(returnFiber, newChild, expirationTime)
+        return placeSingleChild(
+          reconcileSingleElement(
+            returnFiber,
+            currentFirstChild,
+            newChild,
+            expirationTime,
+          ),
+        );
       // TODO:
       // case REACT_PORTAL_TYPE:
-      //   return reconcileSinglePortal(
-      //     returnFiber,
-      //     currentFirstChild,
-      //     newChild,
-      //     expirationTime,
-      //   )
+      //   return placeSingleChild(
+      //     reconcileSinglePortal(
+      //       returnFiber,
+      //       currentFirstChild,
+      //       newChild,
+      //       expirationTime,
+      //     ),
+      //   );
     }
   }
 
   if (typeof newChild === 'string' || typeof newChild === 'number') {
-    return  reconcileSingleTextNode(returnFiber, newChild, expirationTime)
+    return  placeSingleChild(
+      reconcileSingleTextNode(
+        returnFiber,
+        newChild,
+        expirationTime
+      )
+    )
   }
 
   if (isArray(newChild)) {

@@ -20,7 +20,6 @@ export function reconcileChildren(
     //   nextChildren,
     //   renderExpirationTime,
     // )
-    debugger
   } else {
     // If the current child is the same as the work in progress, it means that
     // we haven't yet started any work on these children. Therefore, we use
@@ -35,4 +34,5 @@ export function reconcileChildren(
       renderExpiration
     )
   }
+  return workInProgress.child
 }

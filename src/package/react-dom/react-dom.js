@@ -198,7 +198,7 @@ function completeWork(workInProgress) {
   }
 }
 
-function completeUnitOfWork (current, workInProgress) {
+function completeUnitOfWork (workInProgress) {
   // 是个循环
   while(true) {
     // 父节点
@@ -243,7 +243,7 @@ function performUnitOfWork (current, workInProgress) {
 
   if (next === null) {
     // 对当前节点 创建dom 并进行插入的时机
-    next = completeUnitOfWork(current, workInProgress)
+    next = completeUnitOfWork(workInProgress)
   }
   return next
 }
@@ -289,6 +289,8 @@ let classComponentUpdater = {
 
 // 
 function commitRoot(root, finishedWork) {
+  console.log(root)
+  console.log(finishedWork)
   // 
   isWorking = true
   isCommitIng = true
@@ -408,7 +410,6 @@ class ReactRoot {
     workLoop(root.current, nextUnitOfWork)
 
     root.finishedWork = root.current.alternate
-    debugger
 
     // commit 阶段
     if (!!root.finishedWork) {
@@ -419,7 +420,6 @@ class ReactRoot {
 
 const ReactDOM = {
   render(reactElement, container, callback ) {
-    console.log(reactElement)
     isFirstRender = true
     let root = new ReactRoot(container)
 
