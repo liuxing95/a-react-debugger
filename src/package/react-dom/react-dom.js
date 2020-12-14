@@ -369,8 +369,6 @@ function completeRoot(root, finishedWork) {
   root.finishedWork = null
   commitRoot(root, finishedWork)
 }
-
-// 创建根节点
 class ReactRoot {
   constructor(container) {
     this._internalRoot = this._createRoot(container)

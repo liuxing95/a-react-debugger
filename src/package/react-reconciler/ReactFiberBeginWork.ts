@@ -1,7 +1,27 @@
-import { debug } from "webpack";
 import { reconcileChildFibers } from "./ReactChildFiber";
 import { Fiber } from "./ReactFiber";
 import { ExpirationTime } from "./ReactFiberExpirationTime";
+import { FiberRoot } from './ReactFiberRoot'
+
+// function pushHostRootContext(workInProgress: Fiber) {
+//   const root: FiberRoot = workInProgress.stateNode
+// }
+function updateHostRoot(
+  current: Fiber,
+  workInProgress: Fiber,
+  renderExpirationTime: ExpirationTime
+) {
+  // pushHostRootContext(workInProgress)
+
+  const updateQueue = workInProgress.updateQueue
+  const nextProps = workInProgress.pendingProps
+  const prevState = workInProgress.memoizedState
+
+  const prevChildren = prevState !== null ? prevState.element : null;
+  // processUpdateQueue(
+
+  // )
+}
 
 export function reconcileChildren(
   current: Fiber | null,
