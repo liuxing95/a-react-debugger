@@ -1,6 +1,8 @@
+import { HostRoot } from "../shared/ReactWorkTags";
 import { Incomplete, NoEffect } from "../shared/ReactSideEffectTags";
 import { Fiber } from "./ReactFiber";
 import { ExpirationTime, msToExpiration, NoWork } from "./ReactFiberExpirationTime";
+import { beginWork } from './ReactFiberBeginWork'
 // The time at which we're currently rendering work.
 let nextRenderExpirationTime: ExpirationTime = NoWork;
 
@@ -18,6 +20,7 @@ let currentRendererTime: ExpirationTime = msToExpiration(
 
 let currentSchedulerTime: ExpirationTime = currentRendererTime;
 
+// 创建fiber节点的过程
 function performUnitOfWork(workInProgress: Fiber): Fiber | null {
   // The current, flushed, state of this fiber is the alternate.
   // Ideally nothing should rely on this, but relying on it here
@@ -27,9 +30,8 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
 
   // 创建子节点
   // TODO: liuxing
-  // let next = beginWork(current, workInProgress, nextRenderExpirationTime);
-  let next = null
-  workInProgress.memoizedProps = workInProgress.pendingProps;
+  let next = beginWork(current, workInProgress);
+  // workInProgress.memoizedProps = workInProgress.pendingProps;
 
   if (next === null) {
     // If this doesn't spawn new work, complete the current work.
@@ -102,4 +104,20 @@ function requestCurrentTime() {
     return currentSchedulerTime
   }
   // check if there's pending work
+}
+
+// 循环创建fiber树
+function workLoop(isYieldy = false) {
+  if (!isYieldy) {
+    // Flush work without yielding
+    while(nextUnitOfWork) {
+      nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+    }
+  }
+  // else {
+  //   // Flush asynchronous work until there's a higher priority event
+  //   while(nextUnitOfWork !== null && !shouldYieldToRenderer()) {
+  //     nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+  //   }
+  // }
 }

@@ -92,6 +92,7 @@ function updateHostComponent(current, workInProgress) {
   return reconcileChildren(current, workInProgress, nextChildren)
 }
 
+// (DONE:)
 function beginWork(current, workInProgress) {
   let tag = workInProgress.tag
   let next = null
