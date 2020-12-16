@@ -1,4 +1,6 @@
+import { ClassComponent, FunctionComponent, HostComponent, HostRoot, HostText, IndeterminateComponent, LazyComponent, SimpleMemoComponent } from 'package/shared/ReactWorkTags';
 import MAX_SIGNED_31_BIT_INT from '../shared/maxSigned31BitInt';
+import { Fiber } from './ReactFiber';
 
 export type ExpirationTime = number
 

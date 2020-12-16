@@ -1,3 +1,4 @@
+import { DOCUMENT_NODE } from 'package/shared/HTMLNodeType';
 import {
   // initWrapperState as ReactDOMInputInitWrapperState,
   getHostProps as ReactDOMInputGetHostProps,
@@ -214,4 +215,52 @@ export function diffProperties(
     (updatePayload = updatePayload || []).push(STYLE, styleUpdates);
   }
   return updatePayload;
+}
+
+export function createTextNode(
+  text: string,
+  rootContainerElement: Element | Document
+): Text {
+  return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text)
+}
+
+function getOwnerDocumentFromRootContainer(
+  rootContainerElement: Element | Document
+): Document {
+  return rootContainerElement.nodeType === DOCUMENT_NODE
+  ? (rootContainerElement as Document)
+  : rootContainerElement.ownerDocument
+}
+
+export function createElement(
+  type: string,
+  props: any,
+  rootContainerElement: Element | Document,
+): Element {
+  let domElement: Element;
+  const ownerDocument = document
+  if (type === 'script') {
+    // create the script via .innerHTML so its "parser-inserted" flag is
+    // set to true and it does not execute
+    const div = ownerDocument.createElement('div');
+    div.innerHTML = '<script><' + '/script>'; 
+    // This is guaranteed to yield a script element.
+    const firstChild = (div.firstChild as HTMLScriptElement)
+    domElement = div.removeChild(firstChild)
+  } else {
+    domElement = ownerDocument.createElement(type);
+    if (type === 'select') {
+      const node = (domElement as HTMLSelectElement)
+      if (props.multiple) {
+        node.multiple = true;
+      } else if (props.size) {
+        // Setting a size greater than 1 causes a select to behave like `multiple=true`, where
+        // it is possible that no option is selected.
+        //
+        // This is only necessary when a select in "single selection mode".
+        node.size = props.size;
+      }
+    }
+  }
+  return domElement
 }

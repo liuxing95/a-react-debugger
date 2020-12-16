@@ -1,16 +1,25 @@
-import { prepareUpdate } from "../react-dom/client/ReactDOMHostConfig";
+import { createInstance, createTextInstance, Instance, prepareUpdate } from "../react-dom/client/ReactDOMHostConfig";
 import { 
   IndeterminateComponent,
   LazyComponent,
   FunctionComponent,
   ClassComponent,
   HostRoot,
-  HostComponent
+  HostComponent,
+  HostText
 } from "../shared/ReactWorkTags";
 import { Fiber } from "./ReactFiber";
 import { ExpirationTime } from "./ReactFiberExpirationTime";
 
+let appendAllChildren
 let updateHostComponent
+let updateHostText
+
+// appendAllChildren = function(
+//   parent: Instance,
+//   workInProgress: Fiber,
+  
+// )
 
 
 updateHostComponent = function(
@@ -86,6 +95,22 @@ updateHostComponent = function(
   // }
 }
 
+updateHostText = function(
+  current: Fiber,
+  workInProgress: Fiber,
+  oldText: string,
+  newText: string
+) {
+  if (oldText !== newText) {
+    // If the text content differs, we'll create a new text instance for it.
+    // const rootContainerInstance = getRootHostContainer();
+    workInProgress.stateNode = createTextInstance(
+      newText,
+      document,
+    );
+  }
+}
+
 export function completeWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -103,15 +128,39 @@ export function completeWork(
       break;
     }
     case HostRoot: {
-      // TODO:
+      break
     }
     case HostComponent: {
       const type = workInProgress.type
       if (current !== null && workInProgress.stateNode !== null) {
         // updateHostComponent(current, workInProgress, )
+      } else {
+        // 说明这个节点是初次挂载
+        // 也可能是一个新创建的一个节点
+        let instance = createInstance(
+          type,
+          newProps,
+          document,
+          workInProgress,
+        );
+
+        
+      }
+    }
+    case HostText: {
+      let newText = newProps;
+      if (current && workInProgress.stateNode != null) {
+        const oldText = current.memoizedProps;
+        // If we have an alternate, that means this is an update and we need
+        // to schedule a side-effect to do the updates.
+        updateHostText(current, workInProgress, oldText, newText);
+      } else {
+        workInProgress.stateNode = createTextInstance(
+          newText,
+          document,
+        );
       }
     }
   }
-  // TODO: liuxing
   return null
 }

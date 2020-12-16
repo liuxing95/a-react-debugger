@@ -27,7 +27,7 @@ let eventsName = {
   onInput: 'input'
 }
 
-// 操作根节点
+// 操作根节点// (DONE:)
 function updateHostRoot(current, workInProgress) {
   // 获取子节点
   let children = workInProgress.memoizedState.element
@@ -35,7 +35,7 @@ function updateHostRoot(current, workInProgress) {
   return reconcileChildren(current, workInProgress, children)
 }
 
-// 组件类型
+// 组件类型// (DONE:)
 function updateClassComponent(current, workInProgress) {
   let component = workInProgress.type
   let nextProps = workInProgress.pendingProps
@@ -77,6 +77,7 @@ function updateClassComponent(current, workInProgress) {
   return reconcileChildren(current, workInProgress, nextChild)
 }
 
+// (DONE:)
 function updateHostComponent(current, workInProgress) {
   let nextProps = workInProgress.pendingProps
   let nextChildren = nextProps.children
@@ -238,6 +239,7 @@ function completeUnitOfWork (workInProgress) {
   }
 }
 
+// (DONE:)
 function performUnitOfWork (current, workInProgress) {
   // 创建子节点
   let next = beginWork(current, workInProgress)
@@ -248,7 +250,7 @@ function performUnitOfWork (current, workInProgress) {
   }
   return next
 }
-// 循环创建fiber树
+// 循环创建fiber树 (DONE:)
 function workLoop(current, nextUnitOfWork) {
   while(!!nextUnitOfWork) {
     nextUnitOfWork = performUnitOfWork(current, nextUnitOfWork)

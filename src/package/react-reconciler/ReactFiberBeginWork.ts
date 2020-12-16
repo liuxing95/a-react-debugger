@@ -1,6 +1,8 @@
+import { Placement, DidCapture, NoEffect } from "../shared/ReactSideEffectTags";
 import { ClassComponent, HostComponent, HostRoot, HostText } from "../shared/ReactWorkTags";
 import { reconcileChildFibers } from "./ReactChildFiber";
 import { Fiber } from "./ReactFiber";
+import { constructClassInstance, mountClassInstance, updateClassInstance } from "./ReactFiberClassComponent";
 import { ExpirationTime } from "./ReactFiberExpirationTime";
 import { resolveDefaultProps } from "./ReactFiberLazyComponent";
 import { FiberRoot } from './ReactFiberRoot'
@@ -57,10 +59,77 @@ function updateClassComponent(
   const instance = workInProgress.stateNode
   let shouldUpdate
   if (instance === null) {
+    if (current !== null) {
+      // An class component without an instance only mounts if it suspend
+      // inside a non-concurrent tree, in an inconsistent state. we want to
+      // tree it like a new mount, even though an empty version of it already
+      // committed. Disconnect the alternative pointers
+      current.alternate = null
+      workInProgress.alternate = null
+      // since this is conceptually a new fiber, schedule a Placement effect
+      workInProgress.effectTag = Placement
+    }
     // 没有实例 说明是首次渲染
+    // In the initial pass we might need to construct the instance.
+    constructClassInstance(
+      workInProgress,
+      Component,
+      nextProps
+    )
+    mountClassInstance(
+      workInProgress,
+      Component,
+      nextProps
+    )
+    shouldUpdate = true
+  } else {
+    shouldUpdate = updateClassInstance(
+      current,
+      workInProgress,
+      Component,
+      nextProps
+    )
   }
-  // TODO:
-  return null
+
+  // 执行 nextUnitOfWork
+  const nextUnitOfWork = finishClassComponent(
+    current,
+    workInProgress,
+    Component,
+    shouldUpdate
+  )
+
+  return nextUnitOfWork
+}
+
+function finishClassComponent(
+  current: Fiber | null,
+  workInProgress: Fiber,
+  Component: any,
+  shouldUpdate: boolean
+) {
+
+  // const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect
+
+  const instance = workInProgress.stateNode
+
+  // renderer
+  let nextChildren = instance.render()
+  if (current !== null) {
+
+  } else {
+    reconcileChildren(
+      current,
+      workInProgress,
+      nextChildren
+    );
+  }
+
+  // Memoize state using the values we just used to render.
+  // TODO: Restructure so we never read values from the instance.
+  workInProgress.memoizedState = instance.state;
+
+  return workInProgress.child
 }
 
 export function reconcileChildren(

@@ -1,4 +1,6 @@
-import { diffProperties } from './ReactDOMComponent'
+import { DOCUMENT_NODE } from 'package/shared/HTMLNodeType';
+import { createElement, createTextNode, diffProperties } from './ReactDOMComponent'
+import { precacheFiberNode, updateFiberProps } from './ReactDOMComponentTree';
 export type Type = string
 export type Props = {
   autoFocus?: boolean,
@@ -40,4 +42,32 @@ export function prepareUpdate(
     newProps,
     rootContainerInstance
   )
+}
+
+
+// 创建文本节点
+export function createTextInstance(
+  text: string,
+  rootContainerInstance: Container,
+  // internalInstanceHandle: Object
+): TextInstance {
+  const textNode: TextInstance = createTextNode(text, rootContainerInstance)
+  return textNode
+}
+
+export function createInstance(
+  type: string,
+  props: Props,
+  rootContainerInstance: Container,
+  internalInstanceHandle: Object
+): Instance {
+  // let parentNamespace: string
+  const domElement: Instance = createElement(
+    type,
+    props,
+    rootContainerInstance,
+  )
+  precacheFiberNode(internalInstanceHandle, domElement)
+  updateFiberProps(domElement, props);
+  return domElement
 }
