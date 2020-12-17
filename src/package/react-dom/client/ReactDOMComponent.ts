@@ -264,3 +264,23 @@ export function createElement(
   }
   return domElement
 }
+
+export function setInitialProperties(
+  domElement: Element,
+  tag: string,
+  rawProps: Object,
+  rootContainerElement: Element | Document
+): void {
+
+  let props: Object
+  switch(tag) {
+    case 'iframe':
+    case 'object':
+      // TODO:
+      break;
+    case 'video':
+    case 'audio':
+      // TODO:
+      break
+  }
+}

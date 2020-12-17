@@ -71,3 +71,32 @@ export function createInstance(
   updateFiberProps(domElement, props);
   return domElement
 }
+
+export function appendInitialChild(
+  parentInstance: Instance,
+  child: Instance | TextInstance
+): void {
+  parentInstance.appendChild(child);
+}
+
+
+function shouldAutoFocusHostComponent(type: string, props: Props): boolean {
+  switch (type) {
+    case 'button':
+    case 'input':
+    case 'select':
+    case 'textarea':
+      return !!props.autoFocus;
+  }
+  return false;
+}
+
+export function finalizeInitialChildren(
+  domElement: Instance,
+  type: string,
+  props: Props,
+  rootContainerInstance: Container
+): boolean {
+  setInitialProperties(domElement, type, props, rootContainerInstance);
+  return shouldAutoFocusHostComponent(type, props)
+}

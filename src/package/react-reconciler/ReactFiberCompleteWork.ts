@@ -1,4 +1,4 @@
-import { createInstance, createTextInstance, Instance, prepareUpdate } from "../react-dom/client/ReactDOMHostConfig";
+import { appendInitialChild, createInstance, createTextInstance, Instance, prepareUpdate } from "../react-dom/client/ReactDOMHostConfig";
 import { 
   IndeterminateComponent,
   LazyComponent,
@@ -15,11 +15,41 @@ let appendAllChildren
 let updateHostComponent
 let updateHostText
 
-// appendAllChildren = function(
-//   parent: Instance,
-//   workInProgress: Fiber,
+appendAllChildren = function(
+  parent: Instance,
+  workInProgress: Fiber,
   
-// )
+) {
+  // we only have the top Fiber that was created but we need recurse down its
+  // children to find all the terminal nodes
+  let node = workInProgress.child
+  while(node !== null) {
+    branches: if (node.tag === HostComponent) {
+      let instance = node.stateNode
+      appendInitialChild(parent, instance);
+    } else if (node.tag === HostText) {
+      let instance = node.stateNode
+      appendInitialChild(parent, instance);
+    } else if (node.child !== null) {
+      node.child.return = node
+      node = node.child
+      continue
+    }
+
+    if (node === workInProgress) {
+      return
+    }
+
+    while(node.sibling === null) {
+      if (node.return === null || node.return === workInProgress) {
+        return
+      }
+      node = node.return
+    }
+    node.sibling.return = node.return
+    node = node.sibling
+  }
+}
 
 
 updateHostComponent = function(
@@ -144,7 +174,8 @@ export function completeWork(
           workInProgress,
         );
 
-        
+        // 挂载所有的 子节点
+        appendAllChildren(instance, workInProgress)
       }
     }
     case HostText: {
