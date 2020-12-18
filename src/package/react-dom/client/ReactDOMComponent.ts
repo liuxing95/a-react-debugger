@@ -1,4 +1,7 @@
-import { DOCUMENT_NODE } from 'package/shared/HTMLNodeType';
+import { setValueForStyles } from 'package/shared/CSSPropertyOperations';
+import { DOCUMENT_NODE } from '../../shared/HTMLNodeType';
+import { TOP_ERROR, TOP_LOAD } from '../events/DOMTopLevelEventTypes';
+import { trapBubbledEvent } from '../events/ReactDOMEventListener';
 import {
   // initWrapperState as ReactDOMInputInitWrapperState,
   getHostProps as ReactDOMInputGetHostProps,
@@ -28,6 +31,8 @@ import {
   // updateWrapper as ReactDOMTextareaUpdateWrapper,
   // restoreControlledState as ReactDOMTextareaRestoreControlledState,
 } from './ReactDOMTextarea';
+import setInnerHTML from './setInnerHTML';
+import setTextContent from './setTextContent';
 
 const DANGEROUSLY_SET_INNER_HTML = 'dangerouslySetInnerHTML';
 const SUPPRESS_CONTENT_EDITABLE_WARNING = 'suppressContentEditableWarning';
@@ -282,5 +287,43 @@ export function setInitialProperties(
     case 'audio':
       // TODO:
       break
+    case 'img':
+    case 'image':
+    case 'link':
+      trapBubbledEvent(TOP_ERROR, domElement);
+      trapBubbledEvent(TOP_LOAD, domElement);
+      props = rawProps;
+      break;
+    default:
+      props = rawProps;
+  }
+}
+
+// 设置dom的初始化属性
+function setInitialDOMProperties(
+  tag: string,
+  domElement: Element,
+  rootContainerElement: Element | Document,
+  nextProps: Object,
+  isCustomComponentTag: boolean
+): void {
+  for(const propKey in nextProps) {
+    if (!nextProps.hasOwnProperty(propKey)) {
+      continue
+    }
+    const nextProp = nextProps[propKey];
+    if (propKey === STYLE) {
+      // Relies on `updateStylesByID` not mutating `styleUpdates`.
+      setValueForStyles(domElement, nextProps)
+    } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+      const nextHtml = nextProps ? nextProp[HTML] : undefined
+      if (nextHtml !== null) {
+        setInnerHTML(domElement, nextHtml)
+      }
+    } else if (typeof nextProp === 'number') {
+      setTextContent(domElement, '' + nextProp)
+    } else if (nextProp !== null) {
+      
+    }
   }
 }
