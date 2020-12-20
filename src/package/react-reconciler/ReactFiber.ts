@@ -1,4 +1,4 @@
-import { ClassComponent, Fragment, HostComponent, IndeterminateComponent, WorkTag } from '../shared/ReactWorkTags'
+import { ClassComponent, Fragment, HostComponent, HostRoot, IndeterminateComponent, WorkTag } from '../shared/ReactWorkTags'
 import { NoEffect } from '../shared/ReactSideEffectTags'
 import { NoWork, ExpirationTime } from './ReactFiberExpirationTime'
 import { UpdateQueue } from './ReactUpdateQueue';
@@ -249,4 +249,10 @@ export function createFiberFromTypeAndProps(
 function shouldConstruct(Component: Function) {
   const prototype = Component.prototype
   return !!(prototype && prototype.isReactComponent)
+}
+
+export function createHostRootFiber(
+  isConcurrent: boolean
+): Fiber {
+  return createFiber(HostRoot, null, null)
 }

@@ -1,5 +1,14 @@
-import { Fiber } from "./ReactFiber"
+import { HostRoot } from "package/shared/ReactWorkTags";
+import { createFiber, createHostRootFiber, Fiber } from "./ReactFiber"
 import { ExpirationTime } from "./ReactFiberExpirationTime"
+
+// TODO: This should be lifted into the renderer.
+export type Batch = {
+  _defer: boolean,
+  _expirationTime: ExpirationTime,
+  _onComplete: () => any,
+  _next: Batch | null,
+};
 
 type BaseFiberRootProperties = {
   // Any additional information from the host associated with this root.
@@ -47,3 +56,25 @@ export type FiberRoot = {
   // ...BaseFiberRootProperties,
   // ...ProfilingOnlyFiberRootProperties,
 }
+
+export function createFiberRoot(
+  containerInfo,
+  isConcurrent: boolean
+): FiberRoot {
+  // Cyclic construction. This cheats system right now because
+  // stateNode is any
+  const unInitialFiber = createHostRootFiber(isConcurrent);
+
+  let root
+
+  root = {
+    current: unInitialFiber,
+    containerInfo: containerInfo,
+    finishedWork: null,
+  }
+
+  unInitialFiber.stateNode = root
+
+  return root as FiberRoot
+}
+
