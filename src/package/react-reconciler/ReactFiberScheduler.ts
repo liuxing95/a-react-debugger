@@ -1,8 +1,9 @@
 import { HostRoot } from "../shared/ReactWorkTags";
-import { Incomplete, NoEffect } from "../shared/ReactSideEffectTags";
+import { Incomplete, NoEffect, PerformedWork } from "../shared/ReactSideEffectTags";
 import { Fiber } from "./ReactFiber";
 import { ExpirationTime, msToExpiration, NoWork } from "./ReactFiberExpirationTime";
 import { beginWork } from './ReactFiberBeginWork'
+import { completeWork } from "./ReactFiberCompleteWork";
 // The time at which we're currently rendering work.
 let nextRenderExpirationTime: ExpirationTime = NoWork;
 
@@ -29,9 +30,8 @@ function performUnitOfWork(workInProgress: Fiber): Fiber | null {
   const current = workInProgress.alternate;
 
   // 创建子节点
-  // TODO: liuxing
   let next = beginWork(current, workInProgress);
-  // workInProgress.memoizedProps = workInProgress.pendingProps;
+  workInProgress.memoizedProps = workInProgress.pendingProps;
 
   if (next === null) {
     // If this doesn't spawn new work, complete the current work.
@@ -63,12 +63,58 @@ function completeUnitOfWork(workInProgress: Fiber): Fiber | null {
       nextUnitOfWork = workInProgress
 
       // 创建dom节点
+      nextUnitOfWork = completeWork(
+        current,
+        workInProgress,
+        nextRenderExpirationTime
+      )
+
+      if (nextUnitOfWork !== null) {
+        return nextUnitOfWork
+      }
+
+      if (returnFiber !== null &&
+        (returnFiber.effectTag & Incomplete) === NoEffect
+      ) {
+        if (returnFiber.firstEffect === null) {
+          returnFiber.firstEffect = workInProgress.firstEffect
+        }
+        if (workInProgress.lastEffect !== null) {
+          if (returnFiber.lastEffect !== null) {
+            returnFiber.lastEffect.nextEffect = workInProgress.firstEffect
+          }
+          returnFiber.lastEffect = workInProgress.lastEffect
+        }
+
+        // If this fiber had side-effects, we append it AFTER the children's
+        // side-effects. We can perform certain side-effects earlier if
+        // needed, by doing multiple passes over the effect list. We don't want
+        // to schedule our own side-effect on our own list because if end up
+        // reusing children we'll schedule this effect onto itself since we're
+        // at the end.
+        const effectTag = workInProgress.effectTag
+        // Skip both NoWork and PerformedWork tags when creating the effect list.
+        // PerformedWork effect is read by React DevTools but shouldn't be committed.
+        if (effectTag > PerformedWork) {
+          if (returnFiber.lastEffect !== null) {
+            returnFiber.lastEffect.nextEffect = workInProgress
+          } else {
+            returnFiber.firstEffect = workInProgress
+          }
+          returnFiber.lastEffect = workInProgress
+        }
+      }
+
+      if (siblingFiber !== null) {
+        return siblingFiber
+      } else if (returnFiber !== null) {
+        workInProgress = returnFiber;
+        continue;
+      } else {
+        return null
+      }
+    } else {
       // TODO: liuxing
-      // nextUnitOfWork = completeWork(
-      //   current,
-      //   workInProgress,
-      //   nextRenderExpirationTime
-      // )
     }
   }
 
@@ -107,7 +153,7 @@ function requestCurrentTime() {
 }
 
 // 循环创建fiber树
-function workLoop(isYieldy = false) {
+export function workLoop(isYieldy = false) {
   if (!isYieldy) {
     // Flush work without yielding
     while(nextUnitOfWork) {

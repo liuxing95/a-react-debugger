@@ -176,7 +176,10 @@ export function completeWork(
 
         // 挂载所有的 子节点
         appendAllChildren(instance, workInProgress)
+
+        workInProgress.stateNode = instance
       }
+      break;
     }
     case HostText: {
       let newText = newProps;

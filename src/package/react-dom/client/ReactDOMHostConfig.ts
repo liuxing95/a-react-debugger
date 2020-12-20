@@ -1,5 +1,5 @@
 import { DOCUMENT_NODE } from 'package/shared/HTMLNodeType';
-import { createElement, createTextNode, diffProperties } from './ReactDOMComponent'
+import { createElement, createTextNode, diffProperties, setInitialProperties } from './ReactDOMComponent'
 import { precacheFiberNode, updateFiberProps } from './ReactDOMComponentTree';
 export type Type = string
 export type Props = {

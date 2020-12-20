@@ -2,6 +2,7 @@ import { setValueForStyles } from 'package/shared/CSSPropertyOperations';
 import { DOCUMENT_NODE } from '../../shared/HTMLNodeType';
 import { TOP_ERROR, TOP_LOAD } from '../events/DOMTopLevelEventTypes';
 import { trapBubbledEvent } from '../events/ReactDOMEventListener';
+import { setValueForProperty } from './DOMPropertyOperations';
 import {
   // initWrapperState as ReactDOMInputInitWrapperState,
   getHostProps as ReactDOMInputGetHostProps,
@@ -323,7 +324,7 @@ function setInitialDOMProperties(
     } else if (typeof nextProp === 'number') {
       setTextContent(domElement, '' + nextProp)
     } else if (nextProp !== null) {
-      
+      setValueForProperty(domElement, propKey, nextProp, isCustomComponentTag)
     }
   }
 }

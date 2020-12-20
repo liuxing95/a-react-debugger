@@ -113,6 +113,7 @@ function beginWork(current, workInProgress) {
   return next
 }
 
+// (DONE:)
 function completeWork(workInProgress) {
   // 1. 创建真实的dom实例
   let tag = workInProgress.tag
@@ -199,7 +200,7 @@ function completeWork(workInProgress) {
     }
   }
 }
-
+// (DONE:)
 function completeUnitOfWork (workInProgress) {
   // 是个循环
   while(true) {
