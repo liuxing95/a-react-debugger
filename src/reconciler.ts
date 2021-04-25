@@ -10,6 +10,9 @@ import {
   IEffect,
 } from "./type"
 import { scheduleWork, shouldYield, schedule } from "./scheduler"
+import { resetCursor } from "./hook";
+import { createText } from './h'
+import { createElement } from "./dom";
 
 let currentFiber: IFiber
 let finish = null
@@ -59,7 +62,10 @@ export const dispatchUpdate = (fiber?: IFiber) => {
 const reconcileWork = (WIP?: IFiber): boolean => {
   // 遍历处理 WIP => 
   while(WIP && !shouldYield()) WIP = reconcile(WIP)
+  if (WIP) return reconcileWork.bind(null, WIP)
   // TODO:
+  // if (finish) commitWork(finish)
+  return null
 }
 
 /**
@@ -68,14 +74,63 @@ const reconcileWork = (WIP?: IFiber): boolean => {
 const reconcile = (WIP: IFiber): IFiber | undefined => {
   // 根据 type 判断是 hook的更新 还是 host的更新
   isFn(WIP.type) ? updateHook(WIP) : updateHost(WIP)
-  // TODO:
+  if (WIP.child) return WIP.child
+  while(WIP) {
+    if (!finish && WIP.lane & LANE.DIRTY) {
+      finish = WIP
+      WIP.lane &= ~LANE.DIRTY
+      return null
+    }
+    if (WIP.sibling) return WIP.sibling
+    WIP = WIP.parent
+  }
 }
 
-// 
+/**
+ * function函数组件更新
+ * @param WIP workInProgress
+ */
 const updateHook = <P = Attributes>(WIP: IFiber): void => {
+  // currentFiber 指向 workInProgress 并且重置 cursor 从 0 开始计算
+  // 这样计算 getHook的时候能得到正常的值
   currentFiber = WIP
-  
+  resetCursor()
+  try {
+    var children = (WIP.type as FC<P>)(WIP.props)
+  } catch(e) {
+    // TODO: 错误处理
+  }
+  isStr(children) && (children = simpleVnode(children))
+  reconcileChildren(WIP, children)
 }
+
+const updateHost = (WIP: IFiber): void => {
+  WIP.parentNode = getParentNode(WIP) as any
+
+  if (!WIP.node) {
+    if (WIP.type === 'svg') WIP.lane |= LANE.SVG
+    WIP.node = createElement(WIP) as HTMLElementEx
+  }
+  reconcileChildren(WIP, WIP.props.children)
+}
+
+/**
+ * 获取当前WIP的最近的 父节点 就是 往上遍历 获取 最近的一个 fiber.type 不是函数的fiber.node
+ */
+const getParentNode(WIP: IFiber):HTMLElement | undefined => {
+  while((WIP = WIP.parent)) {
+    if (!isFn(WIP)) return WIP.node
+  }
+}
+
+// TODO: 设计到diff算法比较
+const reconcileChildren = (WIP: any, children: FreNode): void => {
+
+}
+
+const simpleVnode = (type: any, props?: any) => 
+  isStr(type) ? createText(type as string) : isFn(type) ? type(props) : type
+
 
 
 export const getCurrentFiber = () => currentFiber || null
