@@ -11,7 +11,7 @@ import {
 } from "./type"
 import { scheduleWork, shouldYield, schedule } from "./scheduler"
 import { resetCursor } from "./hook";
-import { createText } from './h'
+import { createText, isArr } from './h'
 import { createElement } from "./dom";
 
 let currentFiber: IFiber
@@ -123,10 +123,110 @@ const getParentNode(WIP: IFiber):HTMLElement | undefined => {
   }
 }
 
+const clone = (a, b) => {
+  a.lastProps = b.props
+  a.node = b.node
+  a.kids = b.kids
+  a.hooks = b.hooks
+  a.ref = b.ref
+}
+
 // TODO: 设计到diff算法比较
 const reconcileChildren = (WIP: any, children: FreNode): void => {
+  let aCh = WIP.kids || [], // aCH 代表当前fiber的子 fiber 的长度
+    bCh = (WIP.kids = arrayfy(children) as any), // bCh设置为 传入的react.element 的长度 并且同时把 WIP.kids 重新赋值
+    aHead = 0,
+    bHead = 0,
+    aTail = aCh.length - 1,
+    bTail = bCh.length - 1,
+    map = null,
+    // 新的 WIP.kids的长度 一定是 传入的 children的长度
+    ch = Array(bCh.length)
 
+    // 第一遍遍历 看是否有可复用的fiber
+  while(aHead <= aTail && bHead <= bTail) {
+    let c = null
+    if (aCh[aHead] == null) {
+      aHead++
+    } else if (aCh[aTail] == null) {
+      aTail--
+    } else if (same(aCh[aHead], bCh(bHead))) {
+      // 如果 aCh[aHead] bCh(bHead) 代表两个属性一样 可复用
+      c = bCh[bHead]
+      clone(c, aCh[aHead])
+      ch[bHead] = c
+      aHead++
+      bHead++
+    } else if (same(aCh[aTail], bCh[bTail])) {
+      c = bCh[bTail]
+      clone(c, aCh[aTail])
+      c.lane |= LANE.UPDATE
+      ch[bTail] = c
+      aTail--
+      bTail--
+    } else {
+      if (!map) {
+        map = new Map()
+        for (let i = aHead; i <= aTail; i++) {
+          let k = getKey(aCh[i])
+          k && map.set(k, i)
+        }
+      }
+      const key = getKey(bCh[bHead])
+      if (map.has(key)) {
+        const oldKid = aCh[map.get(key)]
+        c = bCh[bHead]
+        clone(c, oldKid)
+        c.lane = LANE.INSERT
+        c.after = aCh[aHead]
+        ch[bHead] = c
+        aCh[map.get(key)] = null
+      } else {
+        c = bCh[bHead]
+        c.lane = LANE.INSERT
+        c.node = null
+        c.after = aCh[aHead]
+      }
+      bHead++
+    }
+  }
+
+  const after = ch[bTail + 1]
+
+  while(bHead <= bTail) {
+    let c = bCh[bHead]
+    if (c) {
+      c.lane = LANE.INSERT
+      c.after = after
+      c.node = null
+    }
+    bHead++
+  }
+
+  while (aHead <= aTail) {
+    let c = aCh[aHead]
+    if (c) {
+      c.lane = LANE.REMOVE
+      deletes.push(c)
+    }
+    aHead++
+  }
+
+  for (var i = 0, prev = null; i < bCh.length; i++) {
+    const child = bCh[i]
+    child.parent = WIP
+    if (i > 0) {
+      prev.sibling = WIP
+    } else {
+      if (WIP.lane & LANE.SVG) child.lane |= LANE.SVG
+      WIP.child = child
+    }
+    prev = child
+  }
 }
+
+const getKey = (vdom) => (vdom == null ? vdom : vdom.key)
+const getType = (vdom) => (isFn(vdom.type) ? vdom.type.name : vdom.type)
 
 const simpleVnode = (type: any, props?: any) => 
   isStr(type) ? createText(type as string) : isFn(type) ? type(props) : type
@@ -139,4 +239,8 @@ export const isStr = (s: any): s is number | string =>
   typeof s === "number" || typeof s === "string"
 export const some = (v: any) => v != null && v !== false && v !== true
 
+const same = (a, b) => {
+  return getKey(a) === getKey(b) && getType(a) === getType(b)
+}
+const arrayfy = (arr) => (!arr ? [] : isArr(arr) ? arr : [arr])
   
